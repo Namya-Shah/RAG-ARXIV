@@ -2,11 +2,12 @@ import os
 from dotenv import load_dotenv
 from vectorstore import FaissVectorStore
 from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
 
 load_dotenv()
 
 class RAGSearch:
-    def __init__(self, persist_dir: str = 'faiss_store', embedding_model: str = 'all-MiniLM-L6-v2', llm_model: str = 'llama-3.1-8b-instant'):
+    def __init__(self, persist_dir: str = 'faiss_store', embedding_model: str = 'all-MiniLM-L6-v2', llm_model: str = 'deepseek-r1:1.5b'):
         self.vectorstore = FaissVectorStore(persist_dir, embedding_model)
         
         # Load or build vectorstore
@@ -18,8 +19,10 @@ class RAGSearch:
             self.vectorstore.build_from_documents(docs)
         else:
             self.vectorstore.load()
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        self.llm = ChatGroq(groq_api_key=groq_api_key, model_name=llm_model)
+        # groq_api_key = os.getenv("GROQ_API_KEY")
+        # self.llm = ChatGroq(groq_api_key=groq_api_key, model_name=llm_model)
+        self.llm = ChatOllama(model="deepseek-r1:1.5b")
+        
         print(f"[INFO] Groq LLM initialized: {llm_model}")
     
     def search_and_summarize(self, query: str, top_k: int = 5) -> str:
@@ -28,13 +31,13 @@ class RAGSearch:
         context = "\n\n".join(texts)
         if not context:
             return "No relevant documents found."
-        prompt = f"""Summarize the following context for the query: '{query}'\n\n{context}\n\nSummary:"""
+        prompt = f"""You are a RAG pipeline expert. Write the solution to '{query}'\n\n{context}\n\n"""
         response = self.llm.invoke([prompt])
         return response.content
 
 # Example usage
 if __name__ == '__main__':
     rag_search = RAGSearch()
-    query = "What is attention mechanism?"
-    summary = rag_search.search_and_summarize(query, top_k=3)
+    query = "Tell me about origin of petroleum hydrocarbons"
+    summary = rag_search.search_and_summarize(query, top_k=1)
     print("Summary:", summary)
